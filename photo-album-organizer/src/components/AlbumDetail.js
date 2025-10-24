@@ -7,6 +7,7 @@ import { photoService } from '../services/PhotoService.js'
 import { fileSystemService } from '../services/FileSystemService.js'
 import { imageService } from '../services/ImageService.js'
 import { PhotoUploader } from './PhotoUploader.js'
+import { defaultImageService } from '../services/DefaultImageService.js'
 import { formatWeekGroup, getWeekGroupDisplayName } from '../utils/dateUtils.js'
 
 export class AlbumDetail {
@@ -65,7 +66,7 @@ export class AlbumDetail {
     }
 
     if (!this.album) {
-      this.container.innerHTML = this.renderError('Album not found')
+      this.container.innerHTML = this.renderAlbumNotFound()
       return
     }
 
@@ -82,6 +83,26 @@ export class AlbumDetail {
       <div class="album-detail-loading">
         <div class="loading-spinner"></div>
         <p>Loading album...</p>
+      </div>
+    `
+  }
+
+  /**
+   * Render album not found state
+   * @returns {string} HTML string
+   */
+  renderAlbumNotFound() {
+    return `
+      <div class="album-detail-error">
+        <div class="error-state">
+          <div class="error-icon">📷</div>
+          <h3>Album Not Found</h3>
+          <p>The album you're looking for doesn't exist or may have been deleted.</p>
+          <div class="error-actions">
+            <button class="action-btn primary" data-action="go-back">← Back to Albums</button>
+            <button class="action-btn secondary" data-action="create-album">Create New Album</button>
+          </div>
+        </div>
       </div>
     `
   }
@@ -188,14 +209,27 @@ export class AlbumDetail {
    */
   renderPhotoGrid() {
     if (this.photos.length === 0) {
+      // Show default image when album is empty
+      const defaultPhoto = defaultImageService.createDefaultPhoto(this.albumId)
       return `
-        <div class="photo-grid-empty">
-          <div class="empty-state">
-            <h3>No photos in this album</h3>
-            <p>Add some photos to get started.</p>
-            <button class="add-photos-btn" data-action="add-photos">
-              Add Photos
-            </button>
+        <div class="photo-grid-container">
+          <div class="photo-grid">
+            <div class="photo-card default-photo" data-photo-id="default">
+              <div class="photo-image">
+                <img src="${defaultImageService.getDefaultAlbumImage()}" alt="Default photo" class="photo-thumb">
+                <div class="photo-overlay">
+                  <div class="photo-actions">
+                    <button class="action-btn" data-action="add-photos" title="Add Photos">
+                      📷 Add Photos
+                    </button>
+                  </div>
+                </div>
+              </div>
+              <div class="photo-info">
+                <h4>Welcome to your album!</h4>
+                <p>Upload your first photo to get started</p>
+              </div>
+            </div>
           </div>
         </div>
       `
@@ -436,6 +470,9 @@ export class AlbumDetail {
         case 'retry-load':
           this.loadAlbumData()
           break
+        case 'create-album':
+          this.createNewAlbum()
+          break
         case 'clear-selection':
           this.clearSelection()
           break
@@ -501,6 +538,47 @@ export class AlbumDetail {
     if (window.app && window.app.navigate) {
       window.app.navigate('/')
     }
+  }
+
+  /**
+   * Create new album and redirect
+   */
+  async createNewAlbum() {
+    try {
+      // Create a sample album
+      const currentWeek = this.getCurrentWeekGroup()
+      const album = await albumService.createAlbum('New Album', currentWeek, 0)
+      
+      // Navigate to the new album
+      if (window.app && window.app.navigate) {
+        window.app.navigate(`/album/${album.id}`)
+      }
+    } catch (error) {
+      console.error('Failed to create album:', error)
+      alert('Failed to create album: ' + error.message)
+    }
+  }
+
+  /**
+   * Get current week group
+   * @returns {string} Week group string
+   */
+  getCurrentWeekGroup() {
+    const now = new Date()
+    const year = now.getFullYear()
+    const week = this.getWeekNumber(now)
+    return `${year}-W${week.toString().padStart(2, '0')}`
+  }
+
+  /**
+   * Get week number of the year
+   * @param {Date} date - Date object
+   * @returns {number} Week number
+   */
+  getWeekNumber(date) {
+    const firstDayOfYear = new Date(date.getFullYear(), 0, 1)
+    const pastDaysOfYear = (date - firstDayOfYear) / 86400000
+    return Math.ceil((pastDaysOfYear + firstDayOfYear.getDay() + 1) / 7)
   }
 
   /**

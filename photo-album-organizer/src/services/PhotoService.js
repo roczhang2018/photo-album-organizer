@@ -37,13 +37,13 @@ export class PhotoService {
 
     try {
       // Check if album exists
-      const album = databaseService.query('SELECT id FROM albums WHERE id = ?', [albumId])
+      const album = await databaseService.query('SELECT id FROM albums WHERE id = ?', [albumId])
       if (album.length === 0) {
         throw new Error('Album not found')
       }
 
       // Check if photo already exists in this album
-      const existing = databaseService.query(
+      const existing = await databaseService.query(
         'SELECT id FROM photos WHERE album_id = ? AND filename = ?',
         [albumId, filename]
       )
@@ -52,7 +52,7 @@ export class PhotoService {
         throw new Error('Photo already exists in this album')
       }
 
-      const result = databaseService.execute(
+      const result = await databaseService.execute(
         'INSERT INTO photos (album_id, filename, file_path, file_size) VALUES (?, ?, ?, ?)',
         [albumId, filename, filePath, fileSize]
       )
@@ -80,7 +80,7 @@ export class PhotoService {
    */
   async getPhotosInAlbum(albumId) {
     try {
-      const photos = databaseService.query(
+      const photos = await databaseService.query(
         `SELECT 
           id,
           album_id as albumId,
@@ -108,7 +108,7 @@ export class PhotoService {
    */
   async getPhotoById(id) {
     try {
-      const photos = databaseService.query(
+      const photos = await databaseService.query(
         `SELECT 
           id,
           album_id as albumId,
@@ -135,7 +135,7 @@ export class PhotoService {
    */
   async removePhotoFromAlbum(photoId) {
     try {
-      const result = databaseService.execute('DELETE FROM photos WHERE id = ?', [photoId])
+      const result = await databaseService.execute('DELETE FROM photos WHERE id = ?', [photoId])
       
       if (result.changes === 0) {
         throw new Error('Photo not found')
@@ -174,7 +174,7 @@ export class PhotoService {
       params.push(id)
       
       const sql = `UPDATE photos SET ${updateFields.join(', ')} WHERE id = ?`
-      const result = databaseService.execute(sql, params)
+      const result = await databaseService.execute(sql, params)
       
       if (result.changes === 0) {
         throw new Error('Photo not found')
@@ -195,7 +195,7 @@ export class PhotoService {
    */
   async getAllPhotos() {
     try {
-      const photos = databaseService.query(
+      const photos = await databaseService.query(
         `SELECT 
           p.id,
           p.album_id as albumId,
@@ -224,7 +224,7 @@ export class PhotoService {
    */
   async getPhotoCount(albumId) {
     try {
-      const result = databaseService.query(
+      const result = await databaseService.query(
         'SELECT COUNT(*) as count FROM photos WHERE album_id = ?',
         [albumId]
       )
@@ -247,7 +247,7 @@ export class PhotoService {
     }
 
     try {
-      const photos = databaseService.query(
+      const photos = await databaseService.query(
         `SELECT 
           p.id,
           p.album_id as albumId,
@@ -326,7 +326,7 @@ export class PhotoService {
     }
 
     try {
-      const photos = databaseService.query(
+      const photos = await databaseService.query(
         `SELECT 
           p.id,
           p.album_id as albumId,

@@ -6,6 +6,7 @@ import { albumService } from '../services/AlbumService.js'
 import { photoService } from '../services/PhotoService.js'
 import { fileSystemService } from '../services/FileSystemService.js'
 import { imageService } from '../services/ImageService.js'
+import { PhotoUploader } from './PhotoUploader.js'
 import { formatWeekGroup, getWeekGroupDisplayName } from '../utils/dateUtils.js'
 
 export class AlbumDetail {
@@ -141,6 +142,9 @@ export class AlbumDetail {
         
         <main class="album-detail-main">
           ${this.renderBulkActionsToolbar()}
+          <div class="upload-section" id="upload-section" style="display: none;">
+            <div class="upload-container" id="upload-container"></div>
+          </div>
           ${this.renderPhotoGrid()}
         </main>
       </div>
@@ -412,7 +416,7 @@ export class AlbumDetail {
           this.goBack()
           break
         case 'add-photos':
-          this.showAddPhotosDialog()
+          this.showPhotoUploader()
           break
         case 'select-photos':
           this.toggleSelectionMode()
@@ -500,7 +504,30 @@ export class AlbumDetail {
   }
 
   /**
-   * Show add photos dialog
+   * Show photo uploader
+   */
+  async showPhotoUploader() {
+    const uploadSection = this.container.querySelector('#upload-section')
+    const uploadContainer = this.container.querySelector('#upload-container')
+    
+    if (uploadSection.style.display === 'none') {
+      // Show uploader
+      uploadSection.style.display = 'block'
+      
+      // Initialize photo uploader
+      this.photoUploader = new PhotoUploader(uploadContainer, this.albumId)
+      await this.photoUploader.init()
+      
+      // Scroll to uploader
+      uploadSection.scrollIntoView({ behavior: 'smooth' })
+    } else {
+      // Hide uploader
+      uploadSection.style.display = 'none'
+    }
+  }
+
+  /**
+   * Show add photos dialog (legacy method)
    */
   async showAddPhotosDialog() {
     try {

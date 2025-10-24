@@ -319,7 +319,38 @@ export class DatabaseService {
     }
     
     if (sql.includes('SELECT') && sql.includes('FROM photos')) {
-      return this.mockData.photos
+      let photos = this.mockData.photos
+      
+      // Filter by album_id if specified
+      if (sql.includes('WHERE album_id = ?') && params.length > 0) {
+        photos = photos.filter(p => p.album_id === params[0])
+      }
+      
+      // Filter by id if specified
+      if (sql.includes('WHERE id = ?') && params.length > 0) {
+        photos = photos.filter(p => p.id === params[0])
+      }
+      
+      // Filter by filename if specified
+      if (sql.includes('filename = ?') && params.length > 0) {
+        const filenameParam = params.find((_, index) => 
+          sql.includes('filename = ?') && 
+          sql.indexOf('filename = ?', sql.indexOf('filename = ?') + 1) === -1 ? 
+          index === params.length - 1 : false
+        )
+        if (filenameParam !== undefined) {
+          photos = photos.filter(p => p.filename === filenameParam)
+        }
+      }
+      
+      return photos.map(photo => ({
+        id: photo.id,
+        albumId: photo.album_id,
+        filename: photo.filename,
+        filePath: photo.file_path,
+        fileSize: photo.file_size,
+        addedDate: photo.added_date
+      }))
     }
     
     return []
@@ -347,6 +378,20 @@ export class DatabaseService {
       return { lastInsertRowid: newId, changes: 1 }
     }
     
+    if (sql.includes('INSERT INTO photos')) {
+      const newId = this.mockData.photos.length + 1
+      const photo = {
+        id: newId,
+        album_id: params[0],
+        filename: params[1],
+        file_path: params[2],
+        file_size: params[3],
+        added_date: new Date().toISOString()
+      }
+      this.mockData.photos.push(photo)
+      return { lastInsertRowid: newId, changes: 1 }
+    }
+    
     if (sql.includes('DELETE FROM albums')) {
       const albumId = params[0]
       const index = this.mockData.albums.findIndex(a => a.id === albumId)
@@ -354,6 +399,16 @@ export class DatabaseService {
         this.mockData.albums.splice(index, 1)
         // Also remove associated photos
         this.mockData.photos = this.mockData.photos.filter(p => p.album_id !== albumId)
+        return { changes: 1 }
+      }
+      return { changes: 0 }
+    }
+    
+    if (sql.includes('DELETE FROM photos')) {
+      const photoId = params[0]
+      const index = this.mockData.photos.findIndex(p => p.id === photoId)
+      if (index !== -1) {
+        this.mockData.photos.splice(index, 1)
         return { changes: 1 }
       }
       return { changes: 0 }

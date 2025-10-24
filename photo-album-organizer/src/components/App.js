@@ -68,15 +68,28 @@ export class App {
    * @param {Object} route - Route information
    */
   async handleHomeRoute(route) {
-    this.currentRoute = route
-    const app = document.querySelector('#app')
-    app.innerHTML = await this.renderHome()
-    
-    // Initialize album grid
-    const albumGridContainer = app.querySelector('#album-grid-container')
-    if (albumGridContainer) {
-      this.albumGrid = new AlbumGrid(albumGridContainer)
-      await this.albumGrid.init()
+    try {
+      console.log('App: Handling home route...')
+      this.currentRoute = route
+      const app = document.querySelector('#app')
+      console.log('App: Rendering home page...')
+      app.innerHTML = await this.renderHome()
+      
+      // Initialize album grid
+      const albumGridContainer = app.querySelector('#album-grid-container')
+      console.log('App: Album grid container found:', !!albumGridContainer)
+      if (albumGridContainer) {
+        console.log('App: Initializing album grid...')
+        this.albumGrid = new AlbumGrid(albumGridContainer)
+        await this.albumGrid.init()
+        console.log('App: Album grid initialized successfully')
+      } else {
+        console.error('App: Album grid container not found!')
+      }
+    } catch (error) {
+      console.error('App: Error in handleHomeRoute:', error)
+      const app = document.querySelector('#app')
+      app.innerHTML = this.renderError('Failed to load home page: ' + error.message)
     }
   }
 
@@ -134,6 +147,10 @@ export class App {
             <div class="db-stats">
               <span>Albums: ${albums.length}</span>
               <span>Database: ${this.isInitialized ? 'Ready' : 'Loading...'}</span>
+              <span id="db-mode" style="color: #666; font-size: 0.9em;"></span>
+              <button onclick="window.app.testDatabase()" style="margin-left: 10px; padding: 5px 10px;">
+                Test DB
+              </button>
             </div>
           </header>
           
@@ -238,6 +255,47 @@ export class App {
     } catch (error) {
       console.error('Failed to create sample album:', error)
       alert('Failed to create sample album: ' + error.message)
+    }
+  }
+
+  /**
+   * Test database functionality
+   */
+  async testDatabase() {
+    try {
+      console.log('Testing database...')
+      
+      // Test database stats
+      const stats = databaseService.getStats()
+      console.log('Database stats:', stats)
+      
+      // Update database mode display
+      const dbModeElement = document.getElementById('db-mode')
+      if (dbModeElement) {
+        const modeText = stats.mode === 'mock' ? '(Mock DB)' : 
+                        stats.mode === 'sqlite' ? '(SQLite)' : 
+                        stats.mode === 'error' ? '(Error)' : ''
+        dbModeElement.textContent = modeText
+      }
+      
+      // Test creating a sample album
+      const currentWeek = getCurrentWeekGroup()
+      console.log('Current week group:', currentWeek)
+      
+      const sampleAlbum = await albumService.createAlbum('Test Album', currentWeek, 0)
+      console.log('Created sample album:', sampleAlbum)
+      
+      // Test getting albums
+      const albums = await albumService.getAlbums()
+      console.log('All albums:', albums)
+      
+      alert(`Database test successful!\nMode: ${stats.mode}\nAlbums: ${albums.length}\nStats: ${JSON.stringify(stats, null, 2)}`)
+      
+      // Refresh the view
+      this.navigate('/')
+    } catch (error) {
+      console.error('Database test failed:', error)
+      alert('Database test failed: ' + error.message)
     }
   }
 

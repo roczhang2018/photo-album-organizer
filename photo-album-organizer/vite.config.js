@@ -9,6 +9,9 @@ export default defineConfig({
     headers: {
       'Cross-Origin-Embedder-Policy': 'require-corp',
       'Cross-Origin-Opener-Policy': 'same-origin'
+    },
+    fs: {
+      allow: ['..']
     }
   },
   
@@ -20,6 +23,21 @@ export default defineConfig({
       'Cross-Origin-Opener-Policy': 'same-origin'
     }
   },
+  
+  // Configure middleware to handle WASM files
+  plugins: [
+    {
+      name: 'configure-response-headers',
+      configureServer: (server) => {
+        server.middlewares.use('/node_modules/sql.js/dist', (req, res, next) => {
+          if (req.url.endsWith('.wasm')) {
+            res.setHeader('Content-Type', 'application/wasm')
+          }
+          next()
+        })
+      }
+    }
+  ],
   
   // Build configuration
   build: {

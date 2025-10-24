@@ -4,6 +4,7 @@
  */
 import { databaseService } from './Database.js'
 import { cacheService } from './CacheService.js'
+import { photoService } from './PhotoService.js'
 
 export class AlbumService {
   /**
@@ -38,7 +39,7 @@ export class AlbumService {
     }
 
     try {
-      const result = databaseService.execute(
+      const result = await databaseService.execute(
         'INSERT INTO albums (name, week_group, sort_order) VALUES (?, ?, ?)',
         [name, weekGroup, sortOrder]
       )
@@ -83,11 +84,11 @@ export class AlbumService {
       
       sql += ' ORDER BY week_group, sort_order'
       
-      const albums = databaseService.query(sql, params)
+      const albums = await databaseService.query(sql, params)
       
       // Get photo count for each album
       for (const album of albums) {
-        const photoCountResult = databaseService.query(
+        const photoCountResult = await databaseService.query(
           'SELECT COUNT(*) as count FROM photos WHERE album_id = ?',
           [album.id]
         )
@@ -159,7 +160,7 @@ export class AlbumService {
       params.push(id)
       
       const sql = `UPDATE albums SET ${updateFields.join(', ')} WHERE id = ?`
-      const result = databaseService.execute(sql, params)
+      const result = await databaseService.execute(sql, params)
       
       if (result.changes === 0) {
         throw new Error('Album not found')
@@ -193,10 +194,10 @@ export class AlbumService {
       }
 
       // Get photo count for confirmation
-      const photoCount = await this.getPhotoCount(id)
+      const photoCount = await photoService.getPhotoCount(id)
       
       // Delete album (cascade delete will remove associated photos)
-      const result = databaseService.execute('DELETE FROM albums WHERE id = ?', [id])
+      const result = await databaseService.execute('DELETE FROM albums WHERE id = ?', [id])
       
       if (result.changes === 0) {
         throw new Error('Failed to delete album')
@@ -222,7 +223,7 @@ export class AlbumService {
       databaseService.beginTransaction()
       
       for (let i = 0; i < newOrder.length; i++) {
-        databaseService.execute(
+        await databaseService.execute(
           'UPDATE albums SET sort_order = ? WHERE id = ? AND week_group = ?',
           [i, newOrder[i], weekGroup]
         )

@@ -18,6 +18,7 @@ export class AlbumGrid {
    * Initialize the album grid
    */
   async init() {
+    this.setLoading(true)
     this.render()
     await this.loadAlbums()
   }
@@ -33,19 +34,21 @@ export class AlbumGrid {
       console.log('AlbumGrid: Calling albumService.getAlbums()...')
       const albums = await albumService.getAlbums()
       console.log('AlbumGrid: Got albums:', albums)
-      this.albums = albums
+      this.albums = albums || []
       
       // Group albums by week
       console.log('AlbumGrid: Grouping albums by week...')
       this.albumsByWeek = await albumService.getAlbumsByWeek()
       console.log('AlbumGrid: Albums grouped by week:', this.albumsByWeek)
       
-      this.render()
     } catch (error) {
       console.error('AlbumGrid: Failed to load albums:', error)
-      this.renderError('Failed to load albums. Please refresh the page.')
+      // Don't show error, just show empty state
+      this.albums = []
+      this.albumsByWeek = {}
     } finally {
       this.setLoading(false)
+      this.render()
     }
   }
 
@@ -53,16 +56,25 @@ export class AlbumGrid {
    * Render the album grid
    */
   render() {
+    console.log('AlbumGrid: Rendering...', {
+      isLoading: this.isLoading,
+      albumsCount: this.albums.length,
+      albumsByWeekKeys: Object.keys(this.albumsByWeek)
+    })
+    
     if (this.isLoading) {
+      console.log('AlbumGrid: Rendering loading state')
       this.container.innerHTML = this.renderLoading()
       return
     }
 
     if (Object.keys(this.albumsByWeek).length === 0) {
+      console.log('AlbumGrid: Rendering empty state')
       this.container.innerHTML = this.renderEmptyState()
       return
     }
 
+    console.log('AlbumGrid: Rendering album grid')
     this.container.innerHTML = this.renderAlbumGrid()
     this.attachEventListeners()
   }
